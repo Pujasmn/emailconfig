@@ -4,7 +4,7 @@ const cors = require("cors");
 const nodemailer = require("nodemailer");
 const admin = require("firebase-admin");
 
-const serviceAccount = require("./firebaseServiceKey.json");
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_KEY);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
