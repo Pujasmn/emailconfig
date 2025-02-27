@@ -26,9 +26,9 @@ const transporter = nodemailer.createTransport({
 
 app.post("/send-email", async (req, res) => {
   try {
-    const { journalName, title, name, email } = req.body;
+    const { journalName, title, name, email, abstract } = req.body;
 
-    if (!journalName || !title || !name || !email) {
+    if (!journalName || !title || !name || !email || !abstract) {
       return res.status(400).json({ success: false, message: "All fields are required." });
     }
 
@@ -39,6 +39,7 @@ app.post("/send-email", async (req, res) => {
       html: `
         <h2>Thank You for Your Submission!</h2>
         <p>We have received your journal submission. Your Submitted article forwarded to respective journal and they get back to you shortly.</p>
+        <p><strong>Abstract:</strong> ${abstract}</p>
         <p> With Regards</p>
         <p>IJIN Team</p>
       `,
@@ -54,6 +55,7 @@ app.post("/send-email", async (req, res) => {
         <p><strong>Title:</strong> ${title}</p>
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>User Email:</strong> ${email}</p>
+        <p><strong>Abstract:</strong> ${abstract}</p>
       `,
     };
 
@@ -66,6 +68,7 @@ app.post("/send-email", async (req, res) => {
     res.status(500).json({ success: false, message: "Error sending email." });
   }
 });
+
 
 app.post("/contact", async (req, res) => {
   try {
