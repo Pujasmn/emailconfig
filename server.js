@@ -130,10 +130,6 @@ app.post("/conferenceemail", async (req, res) => {
         message: "Required fields are missing." 
       });
     }
-
-    // Save to database if needed (you already have this in your frontend)
-    
-    // Email to the user who submitted the form
     const userMailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
@@ -145,12 +141,11 @@ app.post("/conferenceemail", async (req, res) => {
           <p>We have received your conference/symposium submission for "${title}". Your submission has been forwarded to our IJIN team for review.</p>
           <p>We will get back to you shortly with further information.</p>
           <p>With Regards,</p>
-          <p>The IJIN Team</p>
+          <p>IJIN Team</p>
         </div>
       `,
     };
 
-    // Email to the admin/CC with all form details
     const adminMailOptions = {
       from: process.env.EMAIL_USER,
       to: process.env.CC_EMAIL,
@@ -200,12 +195,8 @@ app.post("/conferenceemail", async (req, res) => {
         </div>
       `,
     };
-
-    // Send both emails
     await transporter.sendMail(userMailOptions);
     await transporter.sendMail(adminMailOptions);
-
-    // Log the email sent in Firestore for record keeping
     await db.collection("email_logs").add({
       type: "conference_submission",
       userEmail: email,
@@ -217,10 +208,159 @@ app.post("/conferenceemail", async (req, res) => {
     res.json({ success: true, message: "Emails sent successfully!" });
   } catch (error) {
     console.error("Email sending error:", error);
-    
-    // Log the error
-    await db.collection("email_logs").add({
+        await db.collection("email_logs").add({
       type: "conference_submission",
+      error: error.message,
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      success: false
+    });
+    
+    res.status(500).json({ success: false, message: "Error sending email." });
+  }
+});
+
+app.post("/journalsubmission", async (req, res) => {
+  try {
+    const {
+      title,
+      abbreviation,
+      url,
+      issnPrint,
+      issnOnline,
+      publisher,
+      discipline,
+      chiefEditor,
+      email,
+      country,
+      language,
+      frequency,
+      yearOfStarting,
+      licenseType,
+      acessingType,
+      articleFormats,
+      description
+    } = req.body;
+
+    if (!title || !email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Required fields are missing." 
+      });
+    }
+
+    const userMailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Thank You for Your Journal Submission",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
+          <h2 style="color: #333;">Thank You for Your Journal Submission</h2>
+          <p>Dear ${chiefEditor || "Journal Editor"},</p>
+          <p>We have received your journal submission for "${title}". Your submission has been forwarded to our IJIN team for review.</p>
+          <p>We will get back to you shortly with further information.</p>
+          <p>With Regards,</p>
+          <p>IJIN Team</p>
+        </div>
+      `,
+    };
+
+    const adminMailOptions = {
+      from: process.env.EMAIL_USER,
+      to: process.env.CC_EMAIL,
+      subject: `New Journal Submission: ${title}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
+          <h2 style="color: #333;">New Journal Submission</h2>
+          <p>A new journal submission has been received:</p>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Journal Title</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${title}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Abbreviation</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${abbreviation || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Journal URL</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${url || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>ISSN (Print)</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${issnPrint || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>ISSN (Online)</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${issnOnline || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Publisher</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${publisher || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Discipline</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${discipline || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Chief Editor</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${chiefEditor || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Email</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${email}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Country</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${country || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Language</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${language || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Frequency</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${frequency || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Year of Starting</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${yearOfStarting || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>License Type</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${licenseType || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Accessing Type</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${acessingType || "-"}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Article Formats</strong></td>
+              <td style="padding: 8px; border: 1px solid #ddd;">${articleFormats || "-"}</td>
+            </tr>
+          </table>
+          <div style="border: 1px solid #ddd; padding: 10px; margin-bottom: 20px;">
+            <strong>Description:</strong>
+            <div>${description || "-"}</div>
+          </div>
+        </div>
+      `,
+    };
+    await transporter.sendMail(userMailOptions);
+    await transporter.sendMail(adminMailOptions);
+    await db.collection("email_logs").add({
+      type: "journal_submission",
+      userEmail: email,
+      adminEmail: process.env.CC_EMAIL,
+      journalTitle: title,
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      success: true
+    });
+
+    res.json({ success: true, message: "Journal submission emails sent successfully!" });
+  } catch (error) {
+    console.error("Email sending error:", error);
+    await db.collection("email_logs").add({
+      type: "journal_submission",
       error: error.message,
       sentAt: admin.firestore.FieldValue.serverTimestamp(),
       success: false
