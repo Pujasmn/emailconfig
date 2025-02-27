@@ -5,6 +5,7 @@ const nodemailer = require("nodemailer");
 const admin = require("firebase-admin");
 
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_KEY);
+console.log("FIREBASE_SERVICE_KEY:", process.env.FIREBASE_SERVICE_KEY);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
@@ -109,9 +110,7 @@ app.post("/contact", async (req, res) => {
 });
 
 
-
-
-app.post("/conferencemail", async (req, res) => {
+app.post("/conferenceemail", async (req, res) => {
   try {
     const {
       title,
@@ -122,7 +121,7 @@ app.post("/conferencemail", async (req, res) => {
       email,
       country,
       language,
-      description,
+      description
     } = req.body;
 
     if (!title || !organizer || !email) {
@@ -131,6 +130,10 @@ app.post("/conferencemail", async (req, res) => {
         message: "Required fields are missing." 
       });
     }
+
+    // Save to database if needed (you already have this in your frontend)
+    
+    // Email to the user who submitted the form
     const userMailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
@@ -140,13 +143,6 @@ app.post("/conferencemail", async (req, res) => {
           <h2 style="color: #333;">Thank You for Your Conference Submission</h2>
           <p>Dear ${contactPerson},</p>
           <p>We have received your conference/symposium submission for "${title}". Your submission has been forwarded to our IJIN team for review.</p>
-          <p>Here's a summary of your submission:</p>
-          <ul>
-            <li><strong>Conference Title:</strong> ${title}</li>
-            <li><strong>Organizer:</strong> ${organizer}</li>
-            <li><strong>Date:</strong> ${date}</li>
-            <li><strong>Venue:</strong> ${venue}</li>
-          </ul>
           <p>We will get back to you shortly with further information.</p>
           <p>With Regards,</p>
           <p>The IJIN Team</p>
@@ -154,6 +150,7 @@ app.post("/conferencemail", async (req, res) => {
       `,
     };
 
+    // Email to the admin/CC with all form details
     const adminMailOptions = {
       from: process.env.EMAIL_USER,
       to: process.env.CC_EMAIL,
@@ -195,9 +192,6 @@ app.post("/conferencemail", async (req, res) => {
               <td style="padding: 8px; border: 1px solid #ddd;"><strong>Language</strong></td>
               <td style="padding: 8px; border: 1px solid #ddd;">${language}</td>
             </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ddd;"><strong>Conference ID</strong></td>
-            </tr>
           </table>
           <div style="border: 1px solid #ddd; padding: 10px; margin-bottom: 20px;">
             <strong>Description:</strong>
@@ -206,12 +200,14 @@ app.post("/conferencemail", async (req, res) => {
         </div>
       `,
     };
+
+    // Send both emails
     await transporter.sendMail(userMailOptions);
     await transporter.sendMail(adminMailOptions);
 
+    // Log the email sent in Firestore for record keeping
     await db.collection("email_logs").add({
       type: "conference_submission",
-      conferenceId: conferenceId,
       userEmail: email,
       adminEmail: process.env.CC_EMAIL,
       sentAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -222,6 +218,7 @@ app.post("/conferencemail", async (req, res) => {
   } catch (error) {
     console.error("Email sending error:", error);
     
+    // Log the error
     await db.collection("email_logs").add({
       type: "conference_submission",
       error: error.message,
