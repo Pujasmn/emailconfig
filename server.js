@@ -37,7 +37,9 @@ app.post("/send-email", async (req, res) => {
       subject: "Thank You for Your Submission",
       html: `
         <h2>Thank You for Your Submission!</h2>
-        <p>We have received your journal submission. Our team will review it and get back to you shortly.</p>
+        <p>We have received your journal submission. Your Submitted article forwarded to respective journal and they get back to you shortly.</p>
+        <p> With Regards</p>
+        <p>IJIN Team</p>
       `,
     };
 
@@ -49,9 +51,8 @@ app.post("/send-email", async (req, res) => {
         <h2>New Journal Submission</h2>
         <p><strong>Journal Name:</strong> ${journalName}</p>
         <p><strong>Title:</strong> ${title}</p>
-        <p><strong>Submitted by:</strong> ${name}</p>
+        <p><strong>Name:</strong> ${name}</p>
         <p><strong>User Email:</strong> ${email}</p>
-        <p>Please review this submission.</p>
       `,
     };
 
@@ -64,6 +65,49 @@ app.post("/send-email", async (req, res) => {
     res.status(500).json({ success: false, message: "Error sending email." });
   }
 });
+
+app.post("/contact", async (req, res) => {
+  try {
+    console.log("Received Contact Form Data:", req.body); 
+
+    const { name, email, subject, message } = req.body;
+
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ success: false, message: "All fields are required." });
+    }
+    await db.collection("contact_forms").add({
+      name,
+      email,
+      subject,
+      message,
+      createdAt: new Date(),
+    });
+
+    const userMailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Thank You for Contacting Us!",
+      html: `<p>Hi ${name}, we have received your message and will get back to you soon.</p>`,
+    };
+
+    const ccMailOptions = {
+      from: process.env.EMAIL_USER,
+      to: process.env.CC_EMAIL,
+      subject: `New Contact Form Submission: ${subject}`,
+      html: `<p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Message:</strong> ${message}</p>`,
+    };
+
+    await transporter.sendMail(userMailOptions);
+    await transporter.sendMail(ccMailOptions);
+
+    res.json({ success: true, message: "Contact form submitted successfully!" });
+
+  } catch (error) {
+    console.error("Error handling contact form:", error);
+    res.status(500).json({ success: false, message: "Internal server error." });
+  }
+});
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
