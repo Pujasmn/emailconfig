@@ -123,7 +123,6 @@ app.post("/conferencemail", async (req, res) => {
       country,
       language,
       description,
-      conferenceId
     } = req.body;
 
     if (!title || !organizer || !email) {
@@ -198,7 +197,6 @@ app.post("/conferencemail", async (req, res) => {
             </tr>
             <tr>
               <td style="padding: 8px; border: 1px solid #ddd;"><strong>Conference ID</strong></td>
-              <td style="padding: 8px; border: 1px solid #ddd;">${conferenceId}</td>
             </tr>
           </table>
           <div style="border: 1px solid #ddd; padding: 10px; margin-bottom: 20px;">
